@@ -291,9 +291,9 @@ if (($HELP) || defined($ARGV[0])) {
 # in a big loop
 ########################################################
 
-# open in and out files
-#open(IN,"<:encoding($ENC_IN)", $ARGV[0]) || die "can't open mysql dump file $ARGV[0]";
-#open(OUT,">:encoding($ENC_OUT)", $ARGV[1]) || die "can't open pg dump file $ARGV[1]";
+# set encoding
+binmode STDIN,  ":$ENC_IN";
+binmode STDOUT, ":$ENC_OUT";
 
 # output header
 print STDOUT "--\n";
