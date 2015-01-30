@@ -181,17 +181,17 @@ sub print_post_create_sql() {
             if ($SEP_FILE) {
                 print SEP_FILE "$_;\n" if !defined($stmts{$table_field_combination});
             } else {
-                print OUT "$_;\n" if !defined($stmts{$table_field_combination});
+                print STDOUT "$_;\n" if !defined($stmts{$table_field_combination});
             }
             $stmts{$table_field_combination} = 1;
         }
         elsif (m/COMMENT/i) {  # COMMENT ON object IS 'text'; but comment may be part of table name so use 'elsif'
-            print OUT "$_;\n"
+            print STDOUT "$_;\n"
         } else {  # foreign key constraint  or comments (those preceded by -- )
             if ($SEP_FILE) {
                 print SEP_FILE "$_;\n";
             } else {
-                print OUT "$_;\n"
+                print STDOUT "$_;\n"
             }
         }
     }
@@ -251,8 +251,8 @@ $SEP_FILE = $opt_sepfile || 0;
 $ENC_IN = $opt_enc_in || 'utf8';
 $ENC_OUT = $opt_enc_out || 'utf8';
 
-if (($HELP) || ! defined($ARGV[0]) || ! defined($ARGV[1])) {
-    print "\n\nUsage: perl $0 {--help --debug --preserve_case --char2varchar --nodrop --schema --sepfile --enc_in --enc_out } mysql.sql pg.sql\n";
+if (($HELP) || defined($ARGV[0])) {
+    print "\n\nUsage: perl $0 {--help --debug --preserve_case --char2varchar --nodrop --schema --sepfile --enc_in --enc_out }\n";
     print "\t* OPTIONS WITHOUT ARGS\n";
     print "\t--help:  prints this message \n";
     print "\t--debug: output the commented-out mysql line above the postgres line in pg.sql \n";
@@ -292,26 +292,26 @@ if (($HELP) || ! defined($ARGV[0]) || ! defined($ARGV[1])) {
 ########################################################
 
 # open in and out files
-open(IN,"<:encoding($ENC_IN)", $ARGV[0]) || die "can't open mysql dump file $ARGV[0]";
-open(OUT,">:encoding($ENC_OUT)", $ARGV[1]) || die "can't open pg dump file $ARGV[1]";
+#open(IN,"<:encoding($ENC_IN)", $ARGV[0]) || die "can't open mysql dump file $ARGV[0]";
+#open(OUT,">:encoding($ENC_OUT)", $ARGV[1]) || die "can't open pg dump file $ARGV[1]";
 
 # output header
-print OUT "--\n";
-print OUT "-- Generated from mysql2pgsql.perl\n";
-print OUT "-- http://gborg.postgresql.org/project/mysql2psql/\n";
-print OUT "-- (c) 2001 - 2007 Jose M. Duarte, Joseph Speigle\n";
-print OUT "--\n";
-print OUT "\n";
-print OUT "-- warnings are printed for drop tables if they do not exist\n";
-print OUT "-- please see http://archives.postgresql.org/pgsql-novice/2004-10/msg00158.php\n\n";
-print OUT "-- ##############################################################\n";
+print STDOUT "--\n";
+print STDOUT "-- Generated from mysql2pgsql.perl\n";
+print STDOUT "-- http://gborg.postgresql.org/project/mysql2psql/\n";
+print STDOUT "-- (c) 2001 - 2007 Jose M. Duarte, Joseph Speigle\n";
+print STDOUT "--\n";
+print STDOUT "\n";
+print STDOUT "-- warnings are printed for drop tables if they do not exist\n";
+print STDOUT "-- please see http://archives.postgresql.org/pgsql-novice/2004-10/msg00158.php\n\n";
+print STDOUT "-- ##############################################################\n";
 
 if ($SCHEMA ) {
-    print OUT "set search_path='" . $SCHEMA . "'\\g\n" ;
+    print STDOUT "set search_path='" . $SCHEMA . "'\\g\n" ;
 }
 
 # loop through mysql file  on a per-line basis
-while(<IN>) {
+while(<STDIN>) {
 
 ##############     flow     #########################
 # (the lines are directed to different string variables at different times)
@@ -352,7 +352,7 @@ if (!/^\s*insert into/i) { # not inside create table so don't worry about data c
             # doh!  we hope all dashes and special chars are caught by the regular expressions :)
 }
 if (/^\s*USE\s*([^;]*);/) {
-    print OUT "\\c ". $1;
+    print STDOUT "\\c ". $1;
     next;
 }
 if (/^(UN)?LOCK TABLES/i  || /drop\s+table/i ) {
@@ -456,7 +456,7 @@ if ($create_sql ne "") {         # we are inside create table statement so lets 
         $create_sql .=  $_;
 
         # put comments out first
-        print OUT $pre_create_sql;
+        print STDOUT $pre_create_sql;
 
         # create separate table to reference and to hold mysql's possible set data-type
         # values.  do that table's creation before create table
@@ -466,23 +466,23 @@ if ($create_sql ne "") {         # we are inside create table statement so lets 
             $column_valuesStr = $constraints{$column_name}{'values'};
             $constraint_table_name = get_identifier(${table},${column_name} ,"constraint_table");
             if (lc($type) eq 'set') {
-                print OUT qq~DROP TABLE $constraint_table_name  CASCADE\\g\n~ ;
-                print OUT qq~create table $constraint_table_name  ( set_values varchar UNIQUE)\\g\n~ ;
+                print STDOUT qq~DROP TABLE $constraint_table_name  CASCADE\\g\n~ ;
+                print STDOUT qq~create table $constraint_table_name  ( set_values varchar UNIQUE)\\g\n~ ;
                 $function_create_sql .= make_plpgsql($table,$column_name);
             } elsif (lc($type) eq 'year')  {
-                print OUT qq~DROP TABLE $constraint_table_name  CASCADE\\g\n~ ;
-                print OUT qq~create table $constraint_table_name  ( year_values varchar UNIQUE)\\g\n~ ;
+                print STDOUT qq~DROP TABLE $constraint_table_name  CASCADE\\g\n~ ;
+                print STDOUT qq~create table $constraint_table_name  ( year_values varchar UNIQUE)\\g\n~ ;
             }
             @column_values = split /,/, $column_valuesStr;  #/
             foreach $value (@column_values) {
-                print OUT qq~insert into $constraint_table_name   values (  $value  )\\g\n~; # ad ' for ints and varchars
+                print STDOUT qq~insert into $constraint_table_name   values (  $value  )\\g\n~; # ad ' for ints and varchars
             }
         }
 
         # print create table and reset create table vars
         # when moving from each "create table" to "insert" part of dump
-        print OUT $create_sql;
-        print OUT $function_create_sql;
+        print STDOUT $create_sql;
+        print STDOUT $function_create_sql;
         $pre_create_sql="";
         $auto_increment_seq="";
         $create_sql="";
@@ -891,7 +891,7 @@ elsif (/^\s*insert into/i) { # not inside create table and doing insert
     s!\x85!... !g;    # \ldots
     s!\x92!`!g;
 
-    print OUT $pre_create_sql;    # print comments preceding the insert section
+    print STDOUT $pre_create_sql;    # print comments preceding the insert section
     $pre_create_sql="";
     $auto_increment_seq = "";
 
@@ -913,24 +913,24 @@ elsif (/^\s*insert into/i) { # not inside create table and doing insert
 	
 	if (@rows > 1) {
 	    for my $row (@rows) {
-		print OUT qq(INSERT INTO $insert_table VALUES ($row);\n);
+		print STDOUT qq(INSERT INTO $insert_table VALUES ($row);\n);
 	    }
 	    # end command
-	    print OUT  "\n";
+	    print STDOUT  "\n";
 	}
 	else {
-	    print OUT qq(INSERT INTO $insert_table VALUES $valueString \n);
+	    print STDOUT qq(INSERT INTO $insert_table VALUES $valueString \n);
 	}
     }
     else {   # guarantee table names are quoted
-        print OUT qq(INSERT INTO $insert_table VALUES $valueString \n);
+        print STDOUT qq(INSERT INTO $insert_table VALUES $valueString \n);
     }
 } else {
-    print OUT $_ ;  #  example: /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
+    print STDOUT $_ ;  #  example: /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 }
-#  keep looping and get next line of IN file
+#  keep looping and get next line of STDIN file
 
-} # END while(<IN>)
+} # END while(<STDIN>)
 
 print_post_create_sql();   # in case there is extra from the last table
 

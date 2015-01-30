@@ -1,3 +1,9 @@
+Modifications from the original
+==================================
+
+* Use STDIN and STDOUT
+* Don't take file names as command line arguments
+
 Migrating from MySQL to Postgresql
 ==================================
 
